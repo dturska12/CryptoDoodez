@@ -5,17 +5,17 @@
 pragma solidity ^0.8.0;
 
 /*********************************************
- *              CryptoDoodez!!
- *    A collection of some of the greatest
- *    derivative pfp project in the space!
+ *              CryptoDoodez!!               *
+ *   A collection of some of the greatest    *
+ *   derivative pfp project in the space!    *
  *********************************************
- *All minters granted 100% FULL rights to the 
- *IP of every CryptoDoodez NFT they mint. IP
- *rights granted in this contract only apply 
- *to the original minter. Transfer of rights
- *to subsequent owner (secondary) is at the 
- *decision  of the original minter. 
- *           -Happy Degening-  
+ *All minters granted 100% FULL rights to the*
+ *IP of every CryptoDoodez NFT they mint. IP *
+ *rights granted in this contract only apply *
+ *to the original minter. Transfer of rights *
+ * to subsequent owner (secondary) is at the *
+ *    decision  of the original minter.      *
+ *            -Happy Degening-               *
  ********************************************/
 
 import "./ERC721A.sol";
@@ -25,9 +25,9 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 contract CryptoDoodez is ERC721A, Ownable{
     using Strings for uint256;
 
-    uint256 public constant MAX_SUPPLY = 2500;
-    uint256 public constant MAX_PUBLIC_MINT = 10;
-    uint256 public constant MAX_ALLOW_LIST_MINT = 1;
+    uint256 public constant MAX_SUPPLY = 2350;
+    uint256 public constant MAX_PUBLIC_MINT = 3;
+    uint256 public constant MAX_ALLOW_LIST_MINT = 3;
     uint256 public constant PUBLIC_SALE_PRICE = .0 ether;
     uint256 public constant ALLOW_LIST_SALE_PRICE = .0 ether;
 
@@ -63,6 +63,19 @@ contract CryptoDoodez is ERC721A, Ownable{
         require(msg.value >= (PUBLIC_SALE_PRICE * _quantity), "CryptoDoodez :: Below ");
 
         totalPublicMint[msg.sender] += _quantity;
+        _safeMint(msg.sender, _quantity);
+    }
+
+    function allowListMint(bytes32[] memory _merkleProof, uint256 _quantity) external payable callerIsUser{
+        require(allowListSale, "CryptoDoodez :: Minting is on Pause");
+        require((totalSupply() + _quantity) <= MAX_SUPPLY, "CryptoDoodez :: Cannot mint beyond max supply");
+        require((totalAllowListMint[msg.sender] + _quantity)  <= MAX_ALLOW_LIST_MINT, "CryptoDoodez :: Cannot mint beyond whitelist max mint!");
+        require(msg.value >= (ALLOW_LIST_SALE_PRICE * _quantity), "CryptoDoodez :: Payment is below the price");
+        //create leaf node
+        bytes32 sender = keccak256(abi.encodePacked(msg.sender));
+        require(MerkleProof.verify(_merkleProof, merkleRoot, sender), "CryptoDoodez :: You're not on the allowList.");
+
+        totalAllowListMint[msg.sender] += _quantity;
         _safeMint(msg.sender, _quantity);
     }
 
@@ -106,6 +119,10 @@ contract CryptoDoodez is ERC721A, Ownable{
         placeholderTokenUri = _placeholderTokenUri;
     }
 
+    function toggleAllowListSale() external onlyOwner{
+        allowListSale = allowListSale;
+    }
+
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner{
         merkleRoot = _merkleRoot;
     }
@@ -129,4 +146,4 @@ contract CryptoDoodez is ERC721A, Ownable{
         uint256 withdrawAmount_100 = address(this).balance * 100/100;
         payable(0x86f2aD57b59bb5BE8091A0a5fDBecb168b63cA17).transfer(withdrawAmount_100);
     }
-} 
+}
